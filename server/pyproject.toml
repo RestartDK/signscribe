@@ -5,7 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.119.0",
-    "pipecat-ai[google]>=0.0.90",
+    "pipecat-ai[google,silero]>=0.0.90",
     "python-dotenv>=1.1.1",
     "uvicorn>=0.37.0",
 ]
