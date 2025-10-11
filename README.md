@@ -4,7 +4,19 @@
 
 > A video, less than 60 seconds long. (Ideally this is a demo and not you saying the same thing as section 1. Seriously, less than 60 seconds. Really, I mean it. Less than 60 seconds.)
 
-Mutescribe solves the problem of deaf people not being able to communicate with normal people in a day to day basis. Our solution is an esp32 device that listens to the other person when they are speaking using pipecat, then create images using gemini nano banana of the sign language for the person to understand them.
+Mutescribe solves the problem of deaf people not being able to communicate with normal people in a day to day basis. Our solution is an esp32 device that listens to the other person when they are speaking using pipecat, then create images using gemini nano banana of the sign language for the person to understand them. The deaf person could then text back and have that transcribe to the other person.
+
+Alternatives are texting back and forth with the other person.
+
+Problem is that child won't open up to their parents about their problems, Solution is a cute ai plushie that talks to the child with therapist level reasoning to help them work through their problems.
+
+I consume too much information everyday so I can't post online meaningfully. Solution is a ai agent that listens to all the youtube videos I watch and gives me 
+
+One problem I have when I am presenting to a live crowd is having a hard time to convey my story to an audience.
+
+Most people are visual learners and often recieve information through only audio, so they miss key concepts are have a hard time to follow.
+
+People have a hard time with following instructions of tutorials and can sometimse be left not knowing what to do next.
 
 ## Describe how you used Gemini models and Pipecat. (You must use both Gemini models and Pipecat in this hackathon.)
 
