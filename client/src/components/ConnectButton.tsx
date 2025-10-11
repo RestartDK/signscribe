@@ -19,7 +19,7 @@ export function ConnectButton() {
         await client.disconnect();
       } else {
         await client.startBotAndConnect({
-          endpoint: "http://localhost:7860/start",
+          endpoint: "http://localhost:7860/connect",
         });
       }
     } catch (error) {
