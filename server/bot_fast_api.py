@@ -24,6 +24,8 @@ from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketTransport,
 )
 
+from image_sync_processor import GeminiASLImageGenerator
+
 load_dotenv(override=True)
 
 logger.remove(0)
@@ -31,7 +33,7 @@ logger.add(sys.stderr, level="DEBUG")
 
 
 SYSTEM_INSTRUCTION = """
-"You are Gemini Chatbot, a friendly, helpful robot.
+You are a friendly, helpful AI assistant powered by Gemini Flash.
 
 Your goal is to demonstrate your capabilities in a succinct way.
 
@@ -73,11 +75,18 @@ async def run_bot(websocket_client):
     # RTVI events for Pipecat client UI
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
 
+    # ASL Image Generator for hand sign display
+    asl_image_generator = GeminiASLImageGenerator(
+        llm_service=llm,  # Pass the OpenRouter LLM service
+        rtvi_processor=rtvi  # Pass RTVI processor for custom messages
+    )
+
     pipeline = Pipeline(
         [
             ws_transport.input(),
             context_aggregator.user(),
             rtvi,
+            asl_image_generator,  # Process images before LLM
             llm,  # LLM
             ws_transport.output(),
             context_aggregator.assistant(),

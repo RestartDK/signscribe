@@ -1,41 +1,30 @@
-import {
-  PipecatClientAudio,
-  // PipecatClientVideo,
-  // usePipecatClientTransportState,
-} from "@pipecat-ai/client-react";
+import { useRef } from "react";
 import { PipecatProvider } from "./providers/PipecatProvider";
 import { ConnectButton } from "./components/ConnectButton";
 import { StatusDisplay } from "./components/StatusDisplay";
-import { DebugDisplay } from "./components/DebugDisplay";
+import { DebugDisplay, type DebugDisplayRef } from "./components/DebugDisplay";
+import { ASLImageDisplay } from "./components/ASLImageDisplay";
 import "./App.css";
 
-// function BotVideo() {
-//   const transportState = usePipecatClientTransportState();
-//   const isConnected = transportState !== "disconnected";
-
-//   return (
-//     <div className="bot-container">
-//       <div className="video-container">
-//         {isConnected && <PipecatClientVideo participant="bot" fit="cover" />}
-//       </div>
-//     </div>
-//   );
-// }
-
 function AppContent() {
+  const debugDisplayRef = useRef<DebugDisplayRef>(null);
+
+  const handleLog = (message: string) => {
+    debugDisplayRef.current?.log(message);
+  };
+
   return (
     <div className="app">
       <div className="status-bar">
         <StatusDisplay />
-        <ConnectButton />
+        <ConnectButton onLog={handleLog} />
       </div>
 
-      {/* <div className="main-content">
-        <BotVideo />
-      </div> */}
+      <div className="main-content">
+        <ASLImageDisplay />
+      </div>
 
-      <DebugDisplay />
-      <PipecatClientAudio />
+      <DebugDisplay ref={debugDisplayRef} />
     </div>
   );
 }

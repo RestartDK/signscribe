@@ -15,7 +15,6 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 from bot_fast_api import run_bot
-from bot_websocket_server import run_bot_websocket_server
 
 # Load environment variables
 load_dotenv(override=True)
@@ -63,9 +62,6 @@ async def main():
     server_mode = os.getenv("WEBSOCKET_SERVER", "fast_api")
     tasks = []
     try:
-        if server_mode == "websocket_server":
-            tasks.append(run_bot_websocket_server())
-
         config = uvicorn.Config(app, host="0.0.0.0", port=7860)
         server = uvicorn.Server(config)
         tasks.append(server.serve())
