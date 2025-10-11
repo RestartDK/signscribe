@@ -26,11 +26,9 @@ from pipecat.transports.websocket.server import (
 SYSTEM_INSTRUCTION = """
 "You are Gemini Chatbot, a friendly, helpful robot.
 
-Your goal is to demonstrate your capabilities in a succinct way.
-
 Your output will be converted to audio so don't include special characters in your answers.
 
-Respond to what the user said in a creative and helpful way. Keep your responses brief. One or two sentences at most.
+Respond to what the user said in an accurate and helpful way. Keep your responses brief.
 """
 
 
@@ -47,7 +45,7 @@ async def run_bot_websocket_server():
     )
 
     llm = GeminiMultimodalLiveLLMService(
-        api_key=os.getenv("GOOGLE_API_KEY"),
+        api_key=os.getenv("GOOGLE_API_KEY") or "",
         voice_id="Puck",  # Aoede, Charon, Fenrir, Kore, Puck
         transcribe_model_audio=True,
         system_instruction=SYSTEM_INSTRUCTION,
