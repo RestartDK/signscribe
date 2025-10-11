@@ -13,12 +13,12 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 
-# Load environment variables
-load_dotenv(override=True)
 
 from bot_fast_api import run_bot
 from bot_websocket_server import run_bot_websocket_server
 
+# Load environment variables
+load_dotenv(override=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
