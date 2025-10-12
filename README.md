@@ -6,7 +6,7 @@
 
 SignScribe is an AI solution that provides real time sign language translation. It allows deaf people (5% of global population) to follow live events and content online by generating sign language images in real time.
 
-## 2. [Video Demonstration]((https://www.loom.com/share/4d197882589549b2a23de2cc63edb7b8?sid=eaa61568-a34e-46ab-b20c-e4086055d7ab))
+## 2. [Video Demonstration](https://www.loom.com/share/4d197882589549b2a23de2cc63edb7b8?sid=eaa61568-a34e-46ab-b20c-e4086055d7ab)
 
 ## 3. Gemini models and Pipecat
 
