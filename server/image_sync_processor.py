@@ -1,9 +1,11 @@
 import asyncio
 import base64
+import io
 from typing import Any, Dict, Optional
 
 import requests
 from loguru import logger
+from PIL import Image
 from pipecat.frames.frames import (
     ErrorFrame,
     Frame,
@@ -29,6 +31,53 @@ class GeminiASLImageGenerator(FrameProcessor):
         self.sign_cache = sign_cache or {}
         self.current_sentence = ""
         self.rtvi_processor = rtvi_processor
+
+    def _convert_raw_image_to_png(
+        self, image_data: bytes, size: tuple, format: str
+    ) -> bytes:
+        """Convert raw image data to PNG format if needed."""
+        try:
+            # If it's already a PNG or JPEG, return as-is
+            if image_data.startswith(b"\x89PNG") or image_data.startswith(b"\xFF\xD8\xFF"):
+                logger.info(f"Image is already in encoded format ({format})")
+                return image_data
+
+            # Otherwise, treat it as raw pixel data and convert to PNG
+            logger.info(f"Converting raw pixel data to PNG. Size: {size}, Original format: {format}")
+            
+            # Determine the mode based on data size and dimensions
+            width, height = size
+            expected_rgb = width * height * 3
+            expected_rgba = width * height * 4
+            
+            if len(image_data) == expected_rgba:
+                mode = "RGBA"
+                logger.info("Detected RGBA format")
+            elif len(image_data) == expected_rgb:
+                mode = "RGB"
+                logger.info("Detected RGB format")
+            else:
+                logger.warning(
+                    f"Unexpected data size: {len(image_data)} bytes for {width}x{height} image"
+                )
+                # Try RGB as default
+                mode = "RGB"
+
+            # Create PIL Image from raw data
+            img = Image.frombytes(mode, size, image_data)
+            
+            # Convert to PNG in memory
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            png_data = buffer.getvalue()
+            
+            logger.info(f"Converted to PNG: {len(png_data)} bytes (from {len(image_data)} raw bytes)")
+            return png_data
+
+        except Exception as e:
+            logger.error(f"Error converting image to PNG: {e}")
+            # Return original data as fallback
+            return image_data
 
     async def translate_to_asl_gloss(self, english_text: str) -> str:
         """Translate English text to ASL gloss using LLM"""
@@ -92,7 +141,7 @@ class GeminiASLImageGenerator(FrameProcessor):
                         logger.info(
                             f"Frame has direct image data: {len(frame.image)} bytes"
                         )
-                        image_bytes = frame.image
+                        raw_image_bytes = frame.image
 
                         # Get image size from frame if available
                         image_size = getattr(frame, "size", (512, 512))
@@ -100,10 +149,15 @@ class GeminiASLImageGenerator(FrameProcessor):
                         # Get image format from frame if available
                         image_format = getattr(frame, "format", "PNG")
 
+                        # Convert raw pixel data to PNG format
+                        image_bytes = self._convert_raw_image_to_png(
+                            raw_image_bytes, image_size, image_format
+                        )
+
                         image_data = {
                             "bytes": image_bytes,
                             "size": image_size,
-                            "format": image_format,
+                            "format": "PNG",  # Always PNG after conversion
                         }
 
                         # Cache the result
@@ -119,19 +173,24 @@ class GeminiASLImageGenerator(FrameProcessor):
                         logger.debug(f"Downloading image from URL: {frame.url}")
                         response = requests.get(frame.url)
                         if response.status_code == 200:
-                            image_bytes = response.content
+                            raw_image_bytes = response.content
                             logger.info(
-                                f"Successfully downloaded image for '{clean_word}': {len(image_bytes)} bytes"
+                                f"Successfully downloaded image for '{clean_word}': {len(raw_image_bytes)} bytes"
                             )
 
                             # Try to get image dimensions from frame or use default
                             image_size = getattr(frame, "size", (512, 512))
                             image_format = getattr(frame, "format", "PNG")
 
+                            # Convert raw pixel data to PNG format if needed
+                            image_bytes = self._convert_raw_image_to_png(
+                                raw_image_bytes, image_size, image_format
+                            )
+
                             image_data = {
                                 "bytes": image_bytes,
                                 "size": image_size,
-                                "format": image_format,
+                                "format": "PNG",  # Always PNG after conversion
                             }
 
                             # Cache the result
