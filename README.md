@@ -1,29 +1,33 @@
-# YC hackathon
+# SignScribe
 
-## What is this?
+![SignScribe Logo](server/assets/demo.jpeg)
 
-> A video, less than 60 seconds long. (Ideally this is a demo and not you saying the same thing as section 1. Seriously, less than 60 seconds. Really, I mean it. Less than 60 seconds.)
+## 1. What is this?
 
-Mutescribe solves the problem of deaf people not being able to communicate with normal people in a day to day basis. Our solution is an esp32 device that listens to the other person when they are speaking using pipecat, then create images using gemini nano banana of the sign language for the person to understand them. The deaf person could then text back and have that transcribe to the other person.
+SignScribe is an AI solution that provides real time sign language translation. It allows deaf people (5% of global population) to follow live events and content online by generating sign language images in real time.
 
-Alternatives are texting back and forth with the other person.
+## 2. [Video Demonstration]((https://www.loom.com/share/4d197882589549b2a23de2cc63edb7b8?sid=eaa61568-a34e-46ab-b20c-e4086055d7ab))
 
-Problem is that child won't open up to their parents about their problems, Solution is a cute ai plushie that talks to the child with therapist level reasoning to help them work through their problems.
+## 3. Gemini models and Pipecat
 
-I consume too much information everyday so I can't post online meaningfully. Solution is a ai agent that listens to all the youtube videos I watch and gives me 
+Firstly we used Pipecat to orchestrate the entire pipeline, which is structured as follows:
 
-One problem I have when I am presenting to a live crowd is having a hard time to convey my story to an audience.
+1. Pipecat listens to the audio of the person speaking and, using the Cloud Speech-to-Text API on Google, transcribes the audio to text.
+2. The transcribed text is then passed to the Gemini to translate the text into ASL grammar.
+3. The ASL grammar is then passed to the Gemini Image Generation API to generate the sign language images.
+4. The sign language images are then passed to the Pipecat pipeline to be displayed to the user.
 
-Most people are visual learners and often recieve information through only audio, so they miss key concepts are have a hard time to follow.
+## 4. Tools used
 
-People have a hard time with following instructions of tutorials and can sometimse be left not knowing what to do next.
+1. Pipecat
+2. Gemini
+   - Cloud Speech-to-Text API
+   - Generative Language API
 
-## Describe how you used Gemini models and Pipecat. (You must use both Gemini models and Pipecat in this hackathon.)
+## 5. What we did new during the hackathon
 
-## Describe other tools you used.  So we can all learn from you, and so judges from Boundary, Coval, Langfuse, and Tavus can focus on projects that use those tools
+We started on this project from scratch. We got the idea on our way to the hackathon this morning so all code was written today. Both technologies are new to us so we had to learn them on the fly!
 
-## Tell us what you did new during the hackathon. Again, it’s totally okay to build on top of something you already work on. But be clear about what you did during the hackathon. If we’re not sure what’s old, what’s new (and what’s borrowed and blue) we won’t know how to put your project in context for the hackathon and it probably won’t get highlighted by the judges
+## 6. Feedback
 
-## Give feedback on the tools you used. Sharing is caring. We want your feedback. (But, I hope it goes without saying, please be constructive.)
-
-## [ Optional but highly recommended ]. A live link so we can try out your project
+First time using GCP it took a bit to get everything set up.
