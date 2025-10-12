@@ -3,44 +3,30 @@
 #
 # SPDX-License-Identifier: BSD 2-Clause License
 #
+
 import os
 import sys
 
 from dotenv import load_dotenv
+from image_sync_processor import GeminiASLImageGenerator
 from loguru import logger
 from pipecat.audio.vad.silero import SileroVADAnalyzer
-from pipecat.frames.frames import LLMRunFrame
 from pipecat.pipeline.pipeline import Pipeline
 from pipecat.pipeline.runner import PipelineRunner
 from pipecat.pipeline.task import PipelineParams, PipelineTask
-from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContext
 from pipecat.processors.frameworks.rtvi import RTVIConfig, RTVIObserver, RTVIProcessor
 from pipecat.serializers.protobuf import ProtobufFrameSerializer
-from pipecat.services.gemini_multimodal_live.gemini import (
-    GeminiMultimodalLiveLLMService,
-)
+from pipecat.services.google.image import GoogleImageGenService
+from pipecat.services.google.llm import GoogleLLMService
+from pipecat.services.google.stt import GoogleSTTService
 from pipecat.transports.websocket.fastapi import (
     FastAPIWebsocketParams,
     FastAPIWebsocketTransport,
 )
 
-from image_sync_processor import GeminiASLImageGenerator
-
 load_dotenv(override=True)
-
 logger.remove(0)
 logger.add(sys.stderr, level="DEBUG")
-
-
-SYSTEM_INSTRUCTION = """
-You are a friendly, helpful AI assistant powered by Gemini Flash.
-
-Your goal is to demonstrate your capabilities in a succinct way.
-
-Your output will be converted to audio so don't include special characters in your answers.
-
-Respond to what the user said in a creative and helpful way. Keep your responses brief. One or two sentences at most.
-"""
 
 
 async def run_bot(websocket_client):
@@ -48,48 +34,44 @@ async def run_bot(websocket_client):
         websocket=websocket_client,
         params=FastAPIWebsocketParams(
             audio_in_enabled=True,
-            audio_out_enabled=True,
+            audio_out_enabled=False,
             add_wav_header=False,
             vad_analyzer=SileroVADAnalyzer(),
             serializer=ProtobufFrameSerializer(),
         ),
     )
 
-    llm = GeminiMultimodalLiveLLMService(
-        api_key=os.getenv("GOOGLE_API_KEY"),
-        voice_id="Puck",  # Aoede, Charon, Fenrir, Kore, Puck
-        transcribe_model_audio=True,
-        system_instruction=SYSTEM_INSTRUCTION,
+    stt = GoogleSTTService(
+        api_key=os.getenv("GOOGLE_API_KEY") or "",
     )
 
-    context = OpenAILLMContext(
-        [
-            {
-                "role": "user",
-                "content": "Start by greeting the user warmly and introducing yourself.",
-            }
-        ],
+    # Initialize Gemini LLM for ASL gloss translation
+    gemini_llm = GoogleLLMService(
+        api_key=os.getenv("GOOGLE_API_KEY") or "",
     )
-    context_aggregator = llm.create_context_aggregator(context)
+
+    # Initialize Google Imagen for ASL image generation
+    image_gen_service = GoogleImageGenService(
+        api_key=os.getenv("GOOGLE_API_KEY") or "",
+    )
 
     # RTVI events for Pipecat client UI
     rtvi = RTVIProcessor(config=RTVIConfig(config=[]))
 
     # ASL Image Generator for hand sign display
     asl_image_generator = GeminiASLImageGenerator(
-        llm_service=llm,  # Pass the OpenRouter LLM service
-        rtvi_processor=rtvi  # Pass RTVI processor for custom messages
+        llm_service=gemini_llm,  # Pass the Gemini LLM service
+        image_gen_service=image_gen_service,  # Pass the Imagen service
+        rtvi_processor=rtvi,  # Pass RTVI processor for custom messages
     )
 
     pipeline = Pipeline(
         [
             ws_transport.input(),
-            context_aggregator.user(),
             rtvi,
-            asl_image_generator,  # Process images before LLM
-            llm,  # LLM
+            stt,
+            asl_image_generator,
             ws_transport.output(),
-            context_aggregator.assistant(),
         ]
     )
 
@@ -106,8 +88,6 @@ async def run_bot(websocket_client):
     async def on_client_ready(rtvi):
         logger.info("Pipecat client ready.")
         await rtvi.set_bot_ready()
-        # Kick off the conversation.
-        await task.queue_frames([LLMRunFrame()])
 
     @ws_transport.event_handler("on_client_connected")
     async def on_client_connected(transport, client):
@@ -119,5 +99,4 @@ async def run_bot(websocket_client):
         await task.cancel()
 
     runner = PipelineRunner(handle_sigint=False)
-
     await runner.run(task)
