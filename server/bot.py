@@ -42,7 +42,7 @@ async def run_bot(websocket_client):
     )
 
     stt = GoogleSTTService(
-        api_key=os.getenv("GOOGLE_API_KEY") or "",
+        credentials_path=os.getenv("GOOGLE_APPLICATION_CREDENTIALS"),
     )
 
     # Initialize Gemini LLM for ASL gloss translation
@@ -53,6 +53,7 @@ async def run_bot(websocket_client):
     # Initialize Google Imagen for ASL image generation
     image_gen_service = GoogleImageGenService(
         api_key=os.getenv("GOOGLE_API_KEY") or "",
+        params=GoogleImageGenService.InputParams(model="imagen-4.0-fast-generate-001")
     )
 
     # RTVI events for Pipecat client UI
