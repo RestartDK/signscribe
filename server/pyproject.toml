@@ -1,0 +1,12 @@
+[project]
+name = "yc-gemini-pipe-cat-server"
+version = "0.1.0"
+description = "Pipecat AI server for YC Gemini hackathon"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "python-dotenv",
+    "fastapi[all]",
+    "uvicorn",
+    "pipecat-ai[silero,websocket,google]>=0.0.82",
+    "Pillow",
+]

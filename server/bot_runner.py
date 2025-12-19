@@ -60,11 +60,40 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.post("/connect")
 async def bot_connect(request: Request) -> Dict[Any, Any]:
+    """Return WebSocket URL based on the incoming request for same-origin connection."""
     server_mode = os.getenv("WEBSOCKET_SERVER", "fast_api")
+    
     if server_mode == "websocket_server":
-        ws_url = "ws://localhost:8765"
+        # External websocket server mode - use environment variable or default
+        ws_host = os.getenv("WEBSOCKET_HOST", "localhost:8765")
+        ws_scheme = os.getenv("WEBSOCKET_SCHEME", "ws")
+        ws_url = f"{ws_scheme}://{ws_host}"
     else:
-        ws_url = "ws://localhost:7860/ws"
+        # FastAPI mode - build URL from request
+        # Check for forwarded headers (when behind proxy/load balancer)
+        forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+        forwarded_host = request.headers.get("X-Forwarded-Host", "")
+        
+        # Determine scheme: https -> wss, http -> ws
+        if forwarded_proto == "https" or request.url.scheme == "https":
+            ws_scheme = "wss"
+        else:
+            ws_scheme = "ws"
+        
+        # Use forwarded host if available, otherwise use request host
+        if forwarded_host:
+            ws_host = forwarded_host
+        else:
+            ws_host = request.url.hostname
+            # Include port if not standard (80 for http, 443 for https)
+            if request.url.port and (
+                (ws_scheme == "ws" and request.url.port != 80) or
+                (ws_scheme == "wss" and request.url.port != 443)
+            ):
+                ws_host = f"{ws_host}:{request.url.port}"
+        
+        ws_url = f"{ws_scheme}://{ws_host}/ws"
+    
     return {"ws_url": ws_url}
 
 
