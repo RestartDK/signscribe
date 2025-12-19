@@ -1,0 +1,130 @@
+#
+# Copyright (c) 2025, Daily
+#
+# SPDX-License-Identifier: BSD 2-Clause License
+#
+import asyncio
+import os
+from contextlib import asynccontextmanager
+from typing import Any, Dict
+
+import uvicorn
+from dotenv import load_dotenv
+from fastapi import FastAPI, Request, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+from bot import run_bot
+
+# Load environment variables
+load_dotenv(override=True)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handles FastAPI startup and shutdown."""
+    yield  # Run app
+
+
+# Initialize FastAPI app with lifespan manager
+app = FastAPI(lifespan=lifespan)
+
+# Configure CORS to allow requests from any origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Set up static file serving for SPA
+static_dir = os.path.join(os.path.dirname(__file__), "..", "client", "dist")
+
+# Serve static assets (JS, CSS, images) if dist directory exists
+if os.path.exists(static_dir):
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    print("WebSocket connection accepted")
+    try:
+        await run_bot(websocket)
+    except Exception as e:
+        print(f"Exception in run_bot: {e}")
+
+
+@app.post("/connect")
+async def bot_connect(request: Request) -> Dict[Any, Any]:
+    """Return WebSocket URL based on the incoming request for same-origin connection."""
+    server_mode = os.getenv("WEBSOCKET_SERVER", "fast_api")
+    
+    if server_mode == "websocket_server":
+        # External websocket server mode - use environment variable or default
+        ws_host = os.getenv("WEBSOCKET_HOST", "localhost:8765")
+        ws_scheme = os.getenv("WEBSOCKET_SCHEME", "ws")
+        ws_url = f"{ws_scheme}://{ws_host}"
+    else:
+        # FastAPI mode - build URL from request
+        # Check for forwarded headers (when behind proxy/load balancer)
+        forwarded_proto = request.headers.get("X-Forwarded-Proto", "")
+        forwarded_host = request.headers.get("X-Forwarded-Host", "")
+        
+        # Determine scheme: https -> wss, http -> ws
+        if forwarded_proto == "https" or request.url.scheme == "https":
+            ws_scheme = "wss"
+        else:
+            ws_scheme = "ws"
+        
+        # Use forwarded host if available, otherwise use request host
+        if forwarded_host:
+            ws_host = forwarded_host
+        else:
+            ws_host = request.url.hostname
+            # Include port if not standard (80 for http, 443 for https)
+            if request.url.port and (
+                (ws_scheme == "ws" and request.url.port != 80) or
+                (ws_scheme == "wss" and request.url.port != 443)
+            ):
+                ws_host = f"{ws_host}:{request.url.port}"
+        
+        ws_url = f"{ws_scheme}://{ws_host}/ws"
+    
+    return {"ws_url": ws_url}
+
+
+# Catch-all route for SPA - must be AFTER API routes
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve the SPA for client-side routing."""
+    if os.path.exists(static_dir):
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Serve index.html for all non-file paths (client-side routing)
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    # If dist doesn't exist, return a simple message
+    return {"message": "Frontend not built. Run 'cd client && pnpm build' first."}
+
+
+async def main():
+    server_mode = os.getenv("WEBSOCKET_SERVER", "fast_api")
+    tasks = []
+    try:
+        config = uvicorn.Config(app, host="0.0.0.0", port=7860)
+        server = uvicorn.Server(config)
+        tasks.append(server.serve())
+
+        await asyncio.gather(*tasks)
+    except asyncio.CancelledError:
+        print("Tasks cancelled (probably due to shutdown).")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

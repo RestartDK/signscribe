@@ -1,0 +1,33 @@
+# Dependencies
+**/node_modules/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
+
+# Build artifacts
+client/dist/
+*.egg-info/
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Env files (be careful - you may want these in production)
+.env.local
+.env.development
+
+# Railpack (no longer needed)
+railpack.json
+build.sh
+
+# Misc
+.DS_Store
+*.log
+.cursor/

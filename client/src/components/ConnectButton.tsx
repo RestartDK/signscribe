@@ -33,7 +33,7 @@ export function ConnectButton({ onLog }: ConnectButtonProps) {
         
         onLog?.("Connecting to bot...");
         await client.startBotAndConnect({
-          endpoint: "http://localhost:7860/connect",
+          endpoint: "/connect",
         });
 
         if (startTimeRef.current) {
