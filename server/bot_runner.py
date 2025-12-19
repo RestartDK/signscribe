@@ -12,9 +12,10 @@ import uvicorn
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
-
-from bot_fast_api import run_bot
+from bot import run_bot
 
 # Load environment variables
 load_dotenv(override=True)
@@ -37,6 +38,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Set up static file serving for SPA
+static_dir = os.path.join(os.path.dirname(__file__), "..", "client", "dist")
+
+# Serve static assets (JS, CSS, images) if dist directory exists
+if os.path.exists(static_dir):
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -56,6 +66,22 @@ async def bot_connect(request: Request) -> Dict[Any, Any]:
     else:
         ws_url = "ws://localhost:7860/ws"
     return {"ws_url": ws_url}
+
+
+# Catch-all route for SPA - must be AFTER API routes
+@app.get("/{full_path:path}")
+async def serve_spa(full_path: str):
+    """Serve the SPA for client-side routing."""
+    if os.path.exists(static_dir):
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        # Serve index.html for all non-file paths (client-side routing)
+        index_path = os.path.join(static_dir, "index.html")
+        if os.path.exists(index_path):
+            return FileResponse(index_path)
+    # If dist doesn't exist, return a simple message
+    return {"message": "Frontend not built. Run 'cd client && pnpm build' first."}
 
 
 async def main():
